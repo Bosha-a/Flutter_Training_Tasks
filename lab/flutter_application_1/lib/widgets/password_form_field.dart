@@ -1,59 +1,55 @@
 import 'package:flutter/material.dart';
-import '../utils/validation_utils.dart';
+
+import '../theme/app_colors.dart';
 
 class PasswordFormField extends StatefulWidget {
-  final String label;
   final TextEditingController controller;
+  final String label;
   final String? Function(String?)? validator;
 
   const PasswordFormField({
     super.key,
-    required this.label,
     required this.controller,
+    required this.label,
     this.validator,
   });
 
   @override
-  _PasswordFormFieldState createState() => _PasswordFormFieldState();
+  State<PasswordFormField> createState() => _PasswordFormFieldState();
 }
 
 class _PasswordFormFieldState extends State<PasswordFormField> {
-  bool _obscureText = true;
-  bool _isValid = false;
+  bool _obscure = true;
+
+  void _toggleVisibility() => setState(() => _obscure = !_obscure);
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: widget.controller,
+      obscureText: _obscure,
+      validator: widget.validator,
       decoration: InputDecoration(
         labelText: widget.label,
-        border: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: _isValid ? Colors.green : Colors.red,
+        prefixIcon: const Icon(Icons.lock, color: AppColors.primary),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscure ? Icons.visibility_off : Icons.visibility,
+            color: AppColors.primary,
           ),
+          onPressed: _toggleVisibility,
         ),
-        suffixIcon: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_isValid) Icon(Icons.check, color: Colors.green),
-            IconButton(
-              icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
-              onPressed: () {
-                setState(() {
-                  _obscureText = !_obscureText;
-                });
-              },
-            ),
-          ],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorStyle: const TextStyle(color: AppColors.error),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
         ),
       ),
-      obscureText: _obscureText,
-      validator: widget.validator,
-      onChanged: (value) {
-        setState(() {
-          _isValid = ValidationUtils.validatePassword(value) == null;
-        });
-      },
     );
   }
 }

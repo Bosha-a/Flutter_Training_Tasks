@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
-
 class User {
   final String id;
   final String firstName;
@@ -12,8 +9,6 @@ class User {
   final String? profileImage;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
-  final String? securityQuestion;
-  final String? securityAnswer;
 
   User({
     required this.id,
@@ -26,8 +21,6 @@ class User {
     this.profileImage,
     required this.createdAt,
     this.lastLoginAt,
-    this.securityQuestion,
-    this.securityAnswer,
   });
 
   Map<String, dynamic> toJson() => {
@@ -41,8 +34,6 @@ class User {
         'profileImage': profileImage,
         'createdAt': createdAt.toIso8601String(),
         'lastLoginAt': lastLoginAt?.toIso8601String(),
-        'securityQuestion': securityQuestion,
-        'securityAnswer': securityAnswer != null ? _hashSecurityAnswer(securityAnswer!) : null,
       };
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -52,16 +43,13 @@ class User {
         email: json['email'],
         passwordHash: json['passwordHash'],
         phoneNumber: json['phoneNumber'],
-        dateOfBirth: json['dateOfBirth'] != null ? DateTime.parse(json['dateOfBirth']) : null,
+        dateOfBirth: json['dateOfBirth'] != null
+            ? DateTime.parse(json['dateOfBirth'])
+            : null,
         profileImage: json['profileImage'],
         createdAt: DateTime.parse(json['createdAt']),
-        lastLoginAt: json['lastLoginAt'] != null ? DateTime.parse(json['lastLoginAt']) : null,
-        securityQuestion: json['securityQuestion'],
-        securityAnswer: json['securityAnswer'],
+        lastLoginAt: json['lastLoginAt'] != null
+            ? DateTime.parse(json['lastLoginAt'])
+            : null,
       );
-
-  // Hash security answer for storage
-  String _hashSecurityAnswer(String answer) {
-    return sha256.convert(utf8.encode(answer)).toString();
-  }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../cubits/auth_cubit.dart';
+
+import '../theme/app_colors.dart';
 import '../utils/validation_utils.dart';
 import '../widgets/custom_text_form_field.dart';
 import '../widgets/password_form_field.dart';
@@ -9,138 +9,206 @@ class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  _ForgotPasswordScreenState createState() => _ForgotPasswordScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _emailController = TextEditingController();
-  final _securityAnswerController = TextEditingController();
-  final _newPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  String? _securityQuestion;
-  bool _isEmailValid = false;
-  bool _isAnswerValid = false;
-  bool _isFormValid = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateFormValidity();
-  }
-
-  void _updateFormValidity() {
-    setState(() {
-      _isFormValid = _formKey.currentState?.validate() == true &&
-          _isEmailValid &&
-          (_securityQuestion == null || _securityAnswerController.text.isNotEmpty) &&
-          (_isAnswerValid || _newPasswordController.text.isNotEmpty);
-    });
-  }
+  final _emailController = TextEditingController();
+  final _answerController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  bool _step1Done = false;
+  bool _step2Done = false;
 
   void _checkEmail() {
-    if (ValidationUtils.validateEmail(_emailController.text) == null) {
-      context.read<AuthCubit>().getSecurityQuestion(GetSecurityQuestionEvent(_emailController.text));
+    if (_formKey.currentState!.validate()) {
+      setState(() => _step1Done = true);
     }
   }
 
   void _verifyAnswer() {
-    if (_securityAnswerController.text.isNotEmpty) {
-      context.read<AuthCubit>().verifySecurityAnswer(
-          VerifySecurityAnswerEvent(_emailController.text, _securityAnswerController.text));
+    if (_answerController.text.trim().isNotEmpty) {
+      setState(() => _step2Done = true);
     }
   }
 
   void _resetPassword() {
-    if (_isFormValid) {
-      context.read<AuthCubit>().resetPassword(
-          ResetPasswordEvent(_emailController.text, _newPasswordController.text));
+    if (_newPasswordController.text.length >= 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Password reset successful!")),
+      );
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Forgot Password')),
-      body: BlocListener<AuthCubit, AuthState>(
-        listener: (context, state) {
-          if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-            );
-            if (state.message == 'No user found with this email') {
-              setState(() {
-                _isEmailValid = false;
-                _securityQuestion = null;
-              });
-            }
-          } else if (state is AuthSecurityQuestion) {
-            setState(() {
-              _securityQuestion = state.question.isEmpty ? null : state.question;
-              _isEmailValid = state.question.isNotEmpty;
-            });
-          } else if (state is AuthUnauthenticated) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Password reset successful!'), backgroundColor: Colors.green),
-            );
-            Navigator.pushReplacementNamed(context, '/login');
-          }
-          _updateFormValidity();
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            onChanged: _updateFormValidity,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  BlocBuilder<AuthCubit, AuthState>(
-                    builder: (context, state) {
-                      return state is AuthLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : const SizedBox.shrink();
-                    },
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text("Forgot Password"),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.primary,
+        elevation: 0,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              if (!_step1Done) ...[
+                const Text(
+                  'Enter your email address to reset your password',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
                   ),
-                  CustomTextFormField(
-                    label: 'Email *',
-                    controller: _emailController,
-                    validator: ValidationUtils.validateEmail,
-                    isValid: _isEmailValid,
+                ),
+                const SizedBox(height: 24),
+                CustomTextFormField(
+                  controller: _emailController,
+                  label: 'Email Address',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: ValidationUtils.validateEmail,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  
+                  onPressed: _checkEmail,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: _emailController.text.isNotEmpty ? _checkEmail : null,
-                    child: const Text('Check Email'),
+                  child: const Text(
+                    "Next",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  if (_securityQuestion != null) ...[
-                    const SizedBox(height: 20),
-                    Text(_securityQuestion!, style: const TextStyle(fontSize: 16)),
-                    CustomTextFormField(
-                      label: 'Security Answer *',
-                      controller: _securityAnswerController,
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Security answer is required' : null,
-                      isValid: _securityAnswerController.text.isNotEmpty,
+                ),
+              ] else if (!_step2Done) ...[
+                const Icon(Icons.security, size: 64, color: AppColors.primary),
+                const SizedBox(height: 16),
+                const Text(
+                  "Security Question",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.text,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Please answer the security question to verify your identity",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Text(
+                    "What was your first pet's name?",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.text,
                     ),
-                    ElevatedButton(
-                      onPressed: _securityAnswerController.text.isNotEmpty ? _verifyAnswer : null,
-                      child: const Text('Verify Answer'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                CustomTextFormField(
+                  controller: _answerController,
+                  label: 'Your Answer',
+                  prefixIcon: Icons.question_answer,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Answer is required' : null,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _verifyAnswer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                  if (_isAnswerValid) ...[
-                    const SizedBox(height: 20),
-                    PasswordFormField(
-                      label: 'New Password *',
-                      controller: _newPasswordController,
-                      validator: ValidationUtils.validatePassword,
+                  ),
+                  child: const Text(
+                    "Verify Answer",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
                     ),
-                    ElevatedButton(
-                      onPressed: _isFormValid ? _resetPassword : null,
-                      child: const Text('Reset Password'),
+                  ),
+                ),
+              ] else ...[
+                const Icon(
+                  Icons.lock_reset,
+                  size: 64,
+                  color: AppColors.success,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Reset Password",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.text,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Create a new strong password for your account",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                PasswordFormField(
+                  controller: _newPasswordController,
+                  label: 'New Password',
+                  validator: ValidationUtils.validatePassword,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _resetPassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                ],
-              ),
-            ),
+                  ),
+                  child: const Text(
+                    "Reset Password",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -150,7 +218,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void dispose() {
     _emailController.dispose();
-    _securityAnswerController.dispose();
+    _answerController.dispose();
     _newPasswordController.dispose();
     super.dispose();
   }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../cubits/auth_cubit.dart';
+import '../cubits/auth_state.dart';
+import '../theme/app_colors.dart';
 import '../utils/validation_utils.dart';
 import '../widgets/custom_text_form_field.dart';
 import '../widgets/password_form_field.dart';
@@ -9,7 +12,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -17,31 +20,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
-  bool _isFormValid = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _updateFormValidity();
-  }
-
-  void _updateFormValidity() {
-    setState(() {
-      _isFormValid =
-          _formKey.currentState?.validate() == true &&
-          ValidationUtils.validateEmail(_emailController.text) == null &&
-          ValidationUtils.validatePassword(_passwordController.text) == null;
-    });
-  }
-
-  void _submitForm() {
-    if (_isFormValid) {
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
       context.read<AuthCubit>().login(
-        LoginEvent(
-          _emailController.text,
-          _passwordController.text,
-          _rememberMe,
-        ),
+        _emailController.text.trim(),
+        _passwordController.text,
+        _rememberMe,
       );
     }
   }
@@ -49,88 +34,172 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      backgroundColor: AppColors.background,
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
-          if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          } else if (state is AuthAuthenticated) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Login successful!'),
-                backgroundColor: Colors.green,
-              ),
-            );
+          if (state is AuthSuccess) {
             Navigator.pushReplacementNamed(context, '/home');
+          } else if (state is AuthError) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
-          _updateFormValidity();
         },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            onChanged: _updateFormValidity,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  const Text(
-                    'News App',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        child: BlocBuilder<AuthCubit, AuthState>(
+          builder: (context, state) {
+            return SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        child: Card(
+                          elevation: 8,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'Sign in',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.text,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Sign in to your account',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  CustomTextFormField(
+                                    controller: _emailController,
+                                    label: 'Email',
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: ValidationUtils.validateEmail,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  PasswordFormField(
+                                    controller: _passwordController,
+                                    label: 'Password',
+                                    validator: (value) => value!.isEmpty
+                                        ? 'Password is required'
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Checkbox(
+                                        value: _rememberMe,
+                                        onChanged: (val) =>
+                                            setState(() => _rememberMe = val!),
+                                        activeColor: AppColors.primary,
+                                      ),
+                                      const Text("Remember Me"),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 5),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: state is AuthLoading
+                                          ? null
+                                          : _submit,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            32,
+                                          ),
+                                        ),
+                                      ),
+                                      child: state is AuthLoading
+                                          ? const SizedBox(
+                                              height: 10,
+                                              width: 5,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Text(
+                                              "Login",
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                                
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  TextButton(
+                                    onPressed: () => Navigator.pushNamed(
+                                      context,
+                                      '/forgot-password',
+                                    ),
+                                    child: Text(
+                                      "Forgot Password?",
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        "Don't have an account? ",
+                                        style: TextStyle(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => Navigator.pushNamed(
+                                          context,
+                                          '/register',
+                                        ),
+                                        child: Text(
+                                          "Register",
+                                          style: TextStyle(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 50),
-                  BlocBuilder<AuthCubit, AuthState>(
-                    builder: (context, state) {
-                      return state is AuthLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : const SizedBox.shrink();
-                    },
-                  ),
-                  CustomTextFormField(
-                    label: 'Write Your Email here..',
-                    controller: _emailController,
-                    validator: ValidationUtils.validateEmail,
-                    isValid:
-                        ValidationUtils.validateEmail(_emailController.text) ==
-                        null,
-                  ),
-                  const SizedBox(height: 20),
-                  PasswordFormField(
-                    label: 'Write Your Password here..',
-                    controller: _passwordController,
-                    validator: ValidationUtils.validatePassword,
-                  ),
-                  CheckboxListTile(
-                    title: const Text('Remember Me'),
-                    value: _rememberMe,
-                    onChanged: (value) {
-                      setState(() {
-                        _rememberMe = value ?? false;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _isFormValid ? _submitForm : null,
-                    child: const Text('Login'),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/forgot_password'),
-                    child: const Text('Forgot Password?'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/register'),
-                    child: const Text('Don\'t have an account? Register'),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

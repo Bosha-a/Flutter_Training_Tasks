@@ -1,68 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'services/local_auth_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'cubits/auth_cubit.dart';
-import 'views/register_screen.dart';
-import 'views/login_screen.dart';
+import 'services/local_auth_service.dart';
+import 'theme/app_colors.dart';
 import 'views/forgot_password_screen.dart';
+import 'views/home_screen.dart';
+import 'views/login_screen.dart';
+import 'views/register_screen.dart';
+import 'views/reset_data_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final authService = LocalAuthService();
-  runApp(MyApp(authService: authService));
+
+  await dotenv.load(fileName: ".env");
+
+  runApp(const NewsApp());
 }
 
-class MyApp extends StatelessWidget {
-  final LocalAuthService authService;
-
-  const MyApp({super.key, required this.authService});
+class NewsApp extends StatelessWidget {
+  const NewsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AuthCubit(authService),
+      create: (context) => AuthCubit(LocalAuthService()),
       child: MaterialApp(
         title: 'News App',
-        theme: ThemeData(primarySwatch: Colors.blue),
         debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          primaryColor: AppColors.primary,
+          scaffoldBackgroundColor: AppColors.background,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ),
         initialRoute: '/login',
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
-          '/forgot_password': (context) => const ForgotPasswordScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/home': (context) => const HomeScreen(),
-        },
-      ),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('News App')),
-      body: BlocBuilder<AuthCubit, AuthState>(
-        builder: (context, state) {
-          if (state is AuthAuthenticated) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Welcome, ${state.user.firstName}!'),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<AuthCubit>().logout(LogoutEvent());
-                    },
-                    child: const Text('Logout'),
-                  ),
-                ],
-              ),
-            );
-          }
-          return const Center(child: Text('Not authenticated'));
+          '/reset': (context) => const ResetDataScreen(),
         },
       ),
     );

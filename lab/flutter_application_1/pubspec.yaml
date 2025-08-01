@@ -38,6 +38,12 @@ dependencies:
   crypto: ^3.0.3
   email_validator: ^2.1.17
   uuid: ^4.5.1
+  http: ^1.4.0
+  share_plus: ^7.0.0 
+  intl: ^0.18.0 
+  flutter_dotenv: ^5.2.1
+  shimmer: ^3.0.0
+  url_launcher: ^6.2.4
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -64,6 +70,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:
